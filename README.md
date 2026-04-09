@@ -1,16 +1,71 @@
-# React + Vite
+# Health Information Exchange Project by using FHIR
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Project Overview
 
-Currently, two official plugins are available:
+โปรเจคนี้เป็นระบบจำลองการแลกเปลี่ยนข้อมูลสุขภาพระหว่างโรงพยาบาล โดยใช้แนวคิด **Health Information Exchange (HIE)** และใช้มาตรฐาน **FHIR (Fast Healthcare Interoperability Resources)** ในการจัดรูปแบบข้อมูลให้อยู่ในรูปแบบที่เป็นมาตรฐานเดียวกัน
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+ในโปรเจคนี้จะเน้นข้อมูลหลัก 3 ส่วนตามที่อาจารย์กำหนด ได้แก่
 
-## React Compiler
+1. **Patient** – ข้อมูลคนไข้
+2. **Encounter** – ประวัติการมารับการรักษา
+3. **Medication** – ข้อมูลการจ่ายยา
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+ระบบนี้ถูกออกแบบให้มี **ตัวกลาง** สำหรับรับ request จากฝั่งผู้ใช้ แล้วไปดึงข้อมูลของคนไข้จากระบบโรงพยาบาลที่เกี่ยวข้อง จากนั้นจึงแปลงข้อมูลให้อยู่ในรูปแบบ **FHIR JSON** แล้วส่งกลับมาแสดงผลบนหน้าเว็บ
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Objective
+
+วัตถุประสงค์ของโปรเจคนี้ คือ
+
+- เพื่อศึกษาหลักการทำงานของระบบแลกเปลี่ยนข้อมูลสุขภาพระหว่างโรงพยาบาล
+- เพื่อทำความเข้าใจการใช้มาตรฐาน **FHIR** กับข้อมูลทางการแพทย์
+- เพื่อจำลองการทำงานของระบบ **HIS-HIS** ผ่านตัวกลาง
+- เพื่อพัฒนาระบบต้นแบบที่สามารถค้นหาและแสดงข้อมูลคนไข้ได้จริง
+- เพื่อฝึกการออกแบบ backend, frontend, database และการรันระบบด้วย Docker
+
+---
+
+## Scope of the Project
+
+ในโปรเจคนี้มีขอบเขตการทำงานดังนี้
+
+- ค้นหาคนไข้ด้วย **Patient Identifier** หรือ **HN**
+- แสดงข้อมูลคนไข้ในรูปแบบ **Patient Resource**
+- แสดงประวัติการรักษาในรูปแบบ **Encounter Resource**
+- แสดงประวัติการจ่ายยาในรูปแบบ **MedicationRequest Resource** แต่ในหน้า UI ใช้ชื่อว่า **Medication** เพื่อให้อ่านเข้าใจง่าย
+- ใช้ **PostgreSQL** เป็นฐานข้อมูล
+- ใช้ **UUID** เป็น Primary Key
+- ใช้ **React + Vite** สำหรับหน้าเว็บ
+- ใช้ **Node.js + Express** สำหรับ backend
+- ใช้ **Docker Compose** สำหรับรันระบบทั้งหมดบน localhost
+- ใช้ **Mock Data** จำลองข้อมูลของโรงพยาบาลและผู้ป่วย
+
+---
+
+## Hospitals in This Project
+
+โปรเจคนี้จำลองข้อมูลของ 2 โรงพยาบาล ได้แก่
+
+- **Asoke Hospital**
+- **Ohm Hospital**
+
+โดยมีการกำหนดข้อมูลคนไข้ตัวอย่าง เช่น
+
+- `ake asoke`
+- `ohm nahhh`
+
+รวมถึงมีข้อมูล Encounter และ Medication ย้อนหลังหลายปีเพื่อให้เห็นลักษณะข้อมูลจริงมากขึ้น
+
+---
+
+## Main Concept of the System
+
+แม้ในโลกจริงระบบ HIS ของแต่ละโรงพยาบาลจะมักมี backend และฐานข้อมูลแยกกัน แต่ในโปรเจคนี้เพื่อให้งานสามารถทำได้เร็วขึ้นและไม่ซับซ้อนเกินไป จึงใช้วิธี **Mock HIS A และ HIS B ไว้ในระบบเดียวกัน**
+
+### แนวคิดของระบบจริง
+ระบบจริงจะเป็นประมาณนี้
+
+```text
+User Interface -> HIE / FHIR Facade -> HIS A
+                                   -> HIS B
