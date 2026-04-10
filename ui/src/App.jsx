@@ -1,55 +1,16 @@
-import { useEffect, useState } from "react";
-import { getHospitals, searchPatient } from "./api";
+import { useState } from "react";
+import Sidebar from "./components/Sidebar";
 import SearchForm from "./components/SearchForm";
 import PatientCard from "./components/PatientCard";
 import EncounterList from "./components/EncounterList";
 import MedicationList from "./components/MedicationList";
-import Sidebar from "./components/Sidebar";
 
 export default function App() {
-  const [hospitals, setHospitals] = useState([]);
-  const [identifier, setIdentifier] = useState("");
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadHospitals();
-  }, []);
-
-  async function loadHospitals() {
-    try {
-      const res = await getHospitals();
-      if (res.success) {
-        setHospitals(res.data);
-      } else {
-        setMessage(res.message || "Cannot load hospitals");
-      }
-    } catch (error) {
-      setMessage("Cannot connect to backend");
-    }
-  }
-
-  async function handleSearch(e) {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const res = await searchPatient(identifier);
-      if (res.success) {
-        setResult(res.data);
-      } else {
-        setResult(null);
-        setMessage(res.message || "Not found");
-      }
-    } catch (error) {
-      setResult(null);
-      setMessage("Cannot connect to backend");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const requesterHospitalName = result?.requesterHospital?.name || "Ohm Hospital";
+  const sourceHospitalName = result?.sourceHospital?.name || "No external data selected";
 
   return (
     <div className="app-layout">
@@ -58,43 +19,34 @@ export default function App() {
       <main className="main-content">
         <div className="container">
           <header className="page-header">
-            <h1>Health Information Exchange using FHIR</h1>
+            <h1>{requesterHospitalName} (Hospital B)</h1>
             <p className="subtitle">
-              Search patient record from Asoke Hospital and Ohm Hospital through FHIR Facade
+              Requesting external patient data from another hospital via HIE using FHIR
             </p>
           </header>
 
-          <section id="search-section" className="card">
-            <h2 className="section-title">Search Patient</h2>
+          <section className="info-banner requester-banner">
+            <strong>Requester Hospital:</strong> {requesterHospitalName} (Hospital B)
+          </section>
 
-            <div className="hint-box-inner">
-              <div><strong>Available Hospitals:</strong></div>
-              <ul>
-                {hospitals.map((item) => (
-                  <li key={item.id}>
-                    {item.name} ({item.code})
-                  </li>
-                ))}
-              </ul>
+          <section className="card" id="request-section">
+            <h2 className="section-title">Request Patient Data</h2>
+            <p className="section-desc">
+              หน้านี้เป็นมุมมองของฝั่งโรงพยาบาล B ที่ใช้ขอข้อมูลจากโรงพยาบาลภายนอกผ่าน HIE
+              โดยข้อมูลที่ดึงมาได้จะเป็นแบบ read-only
+            </p>
 
-              <div className="example">
-                Example identifiers: HN-A001, HN-A002, HN-O001, HN-O002, PID-A001, PID-O001
-              </div>
-            </div>
-
-            <SearchForm
-              identifier={identifier}
-              setIdentifier={setIdentifier}
-              handleSearch={handleSearch}
-              loading={loading}
-            />
+            <SearchForm setResult={setResult} setMessage={setMessage} />
 
             {message && <div className="error-box">{message}</div>}
           </section>
 
-          <section className="source-box">
-            <strong>Source Hospital:</strong>{" "}
-            {result?.sourceHospital?.name || "No patient selected"}
+          <section className="info-banner source-banner">
+            <strong>Data Source:</strong> {sourceHospitalName}
+          </section>
+
+          <section className="readonly-box">
+            🔒 External patient data is read-only. Hospital B can view the data, but cannot directly edit Hospital A data.
           </section>
 
           <section id="patient-section">

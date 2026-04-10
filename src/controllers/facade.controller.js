@@ -1,51 +1,81 @@
 const facadeService = require("../services/facade.service");
-const { ok, fail } = require("../utils/response");
 
-async function getHospitals(req, res) {
-  try {
-    const data = await facadeService.getHospitals();
-    return ok(res, data, "Hospital list fetched successfully");
-  } catch (error) {
-    return fail(res, 500, error.message);
-  }
-}
-
-async function searchPatientByIdentifier(req, res) {
+async function searchPatient(req, res) {
   try {
     const { identifier } = req.query;
 
     if (!identifier) {
-      return fail(res, 400, "identifier is required");
+      return res.status(400).json({
+        success: false,
+        message: "identifier is required",
+      });
     }
 
-    const data = await facadeService.searchPatientByIdentifier(identifier);
-    if (!data) {
-      return fail(res, 404, "Patient not found");
+    const result = await facadeService.searchPatientByIdentifier(identifier, "OHM");
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
     }
 
-    return ok(res, data, "Patient summary fetched successfully");
+    return res.json({
+      success: true,
+      data: result,
+    });
   } catch (error) {
-    return fail(res, 500, error.message);
+    console.error("searchPatient error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+}
+
+async function getHospitals(req, res) {
+  try {
+    const hospitals = await facadeService.getHospitals();
+    return res.json({
+      success: true,
+      data: hospitals,
+    });
+  } catch (error) {
+    console.error("getHospitals error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 }
 
 async function getPatientFullRecord(req, res) {
   try {
     const { patientId } = req.params;
-    const data = await facadeService.getPatientFullRecord(patientId);
+    const result = await facadeService.getPatientFullRecord(patientId);
 
-    if (!data) {
-      return fail(res, 404, "Patient full record not found");
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient full record not found",
+      });
     }
 
-    return ok(res, data, "Patient full record fetched successfully");
+    return res.json({
+      success: true,
+      data: result,
+    });
   } catch (error) {
-    return fail(res, 500, error.message);
+    console.error("getPatientFullRecord error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 }
 
 module.exports = {
+  searchPatient,
   getHospitals,
-  searchPatientByIdentifier,
-  getPatientFullRecord
+  getPatientFullRecord,
 };

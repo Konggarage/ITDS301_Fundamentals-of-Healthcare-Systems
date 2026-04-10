@@ -1,30 +1,22 @@
 export default function Sidebar() {
-    const menuItems = [
-      { label: "Search Patient", href: "#search-section" },
-      { label: "Patient", href: "#patient-section" },
-      { label: "Encounter", href: "#encounter-section" },
-      { label: "Medication", href: "#medication-section" }
-    ];
-  
-    return (
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <h2>HIE FHIR</h2>
-          <p>Demo System</p>
-        </div>
-  
-        <nav className="sidebar-nav">
-          {menuItems.map((item) => (
-            <a key={item.label} href={item.href} className="sidebar-link">
-              {item.label}
-            </a>
-          ))}
-        </nav>
-  
-        <div className="sidebar-footer">
-          <small>Asoke Hospital</small>
-          <small>Ohm Hospital</small>
-        </div>
-      </aside>
-    );
-  }
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <h2>Ohm Hospital</h2>
+        <p>Hospital B System</p>
+      </div>
+
+      <nav className="sidebar-nav">
+        <a href="#request-section" className="sidebar-link">Request Patient</a>
+        <a href="#patient-section" className="sidebar-link">Patient</a>
+        <a href="#encounter-section" className="sidebar-link">Encounter</a>
+        <a href="#medication-section" className="sidebar-link">Medication</a>
+      </nav>
+
+      <div className="sidebar-footer">
+        <small>Requester: Ohm Hospital</small>
+        <small>External source example: Asoke Hospital</small>
+      </div>
+    </aside>
+  );
+}
