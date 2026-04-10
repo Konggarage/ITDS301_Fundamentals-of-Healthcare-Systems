@@ -1,71 +1,174 @@
-# Health Information Exchange Project by using FHIR
+มีรายละเอียดดังนี้:
 
-## Project Overview
-
-โปรเจคนี้เป็นระบบจำลองการแลกเปลี่ยนข้อมูลสุขภาพระหว่างโรงพยาบาล โดยใช้แนวคิด **Health Information Exchange (HIE)** และใช้มาตรฐาน **FHIR (Fast Healthcare Interoperability Resources)** ในการจัดรูปแบบข้อมูลให้อยู่ในรูปแบบที่เป็นมาตรฐานเดียวกัน
-
-ในโปรเจคนี้จะเน้นข้อมูลหลัก 3 ส่วนตามที่อาจารย์กำหนด ได้แก่
-
-1. **Patient** – ข้อมูลคนไข้
-2. **Encounter** – ประวัติการมารับการรักษา
-3. **Medication** – ข้อมูลการจ่ายยา
-
-ระบบนี้ถูกออกแบบให้มี **ตัวกลาง** สำหรับรับ request จากฝั่งผู้ใช้ แล้วไปดึงข้อมูลของคนไข้จากระบบโรงพยาบาลที่เกี่ยวข้อง จากนั้นจึงแปลงข้อมูลให้อยู่ในรูปแบบ **FHIR JSON** แล้วส่งกลับมาแสดงผลบนหน้าเว็บ
+* **Hospital B (Ohm Hospital)** → เป็นฝั่งที่ “ขอข้อมูล”
+* **Hospital A (Asoke Hospital)** → เป็นฝั่งที่ “ให้ข้อมูล”
+* **HIE / FHIR Facade** → เป็นตัวกลางที่รับ request แล้วไปดึงข้อมูลจากระบบปลายทาง
 
 ---
 
-## Objective
+### แนวคิดของระบบในโปรเจคนี้
 
-วัตถุประสงค์ของโปรเจคนี้ คือ
-
-- เพื่อศึกษาหลักการทำงานของระบบแลกเปลี่ยนข้อมูลสุขภาพระหว่างโรงพยาบาล
-- เพื่อทำความเข้าใจการใช้มาตรฐาน **FHIR** กับข้อมูลทางการแพทย์
-- เพื่อจำลองการทำงานของระบบ **HIS-HIS** ผ่านตัวกลาง
-- เพื่อพัฒนาระบบต้นแบบที่สามารถค้นหาและแสดงข้อมูลคนไข้ได้จริง
-- เพื่อฝึกการออกแบบ backend, frontend, database และการรันระบบด้วย Docker
-
----
-
-## Scope of the Project
-
-ในโปรเจคนี้มีขอบเขตการทำงานดังนี้
-
-- ค้นหาคนไข้ด้วย **Patient Identifier** หรือ **HN**
-- แสดงข้อมูลคนไข้ในรูปแบบ **Patient Resource**
-- แสดงประวัติการรักษาในรูปแบบ **Encounter Resource**
-- แสดงประวัติการจ่ายยาในรูปแบบ **MedicationRequest Resource** แต่ในหน้า UI ใช้ชื่อว่า **Medication** เพื่อให้อ่านเข้าใจง่าย
-- ใช้ **PostgreSQL** เป็นฐานข้อมูล
-- ใช้ **UUID** เป็น Primary Key
-- ใช้ **React + Vite** สำหรับหน้าเว็บ
-- ใช้ **Node.js + Express** สำหรับ backend
-- ใช้ **Docker Compose** สำหรับรันระบบทั้งหมดบน localhost
-- ใช้ **Mock Data** จำลองข้อมูลของโรงพยาบาลและผู้ป่วย
-
----
-
-## Hospitals in This Project
-
-โปรเจคนี้จำลองข้อมูลของ 2 โรงพยาบาล ได้แก่
-
-- **Asoke Hospital**
-- **Ohm Hospital**
-
-โดยมีการกำหนดข้อมูลคนไข้ตัวอย่าง เช่น
-
-- `ake asoke`
-- `ohm nahhh`
-
-รวมถึงมีข้อมูล Encounter และ Medication ย้อนหลังหลายปีเพื่อให้เห็นลักษณะข้อมูลจริงมากขึ้น
-
----
-
-## Main Concept of the System
-
-แม้ในโลกจริงระบบ HIS ของแต่ละโรงพยาบาลจะมักมี backend และฐานข้อมูลแยกกัน แต่ในโปรเจคนี้เพื่อให้งานสามารถทำได้เร็วขึ้นและไม่ซับซ้อนเกินไป จึงใช้วิธี **Mock HIS A และ HIS B ไว้ในระบบเดียวกัน**
-
-### แนวคิดของระบบจริง
-ระบบจริงจะเป็นประมาณนี้
+ในโปรเจคนี้จะจำลองการทำงานโดยใช้ database เดียว แต่ยังคง logic แบบเดียวกับระบบจริง โดยใช้ `hospital_id` เพื่อแยกว่าแต่ละข้อมูลมาจากโรงพยาบาลใด
 
 ```text
-User Interface -> HIE / FHIR Facade -> HIS A
-                                   -> HIS B
+React UI (Hospital B)
+        ↓
+HIE Backend (Node.js / Express)
+        ↓
+PostgreSQL (Mock HIS A + HIS B)
+```
+
+---
+
+### การทำงานของระบบ (Flow)
+
+1. ผู้ใช้ใช้งานผ่านหน้าเว็บของ **Hospital B (Ohm Hospital)**
+2. ผู้ใช้กรอก HN หรือ Patient Identifier
+3. UI ส่ง request ไปที่ **HIE (Backend)**
+4. Backend ตรวจสอบว่า patient อยู่ที่โรงพยาบาลใด (Hospital A)
+5. Backend ดึงข้อมูล:
+
+   * Patient
+   * Encounter
+   * Medication
+6. Backend แปลงข้อมูลให้อยู่ในรูปแบบ **FHIR JSON**
+7. ส่งข้อมูลกลับไปยัง UI ของ Hospital B
+8. UI แสดงผล พร้อมระบุว่า:
+
+   * Requester = Hospital B
+   * Source = Hospital A
+   * Data = Read-only
+
+---
+
+### Data Ownership (สำคัญ)
+
+ในระบบนี้มีแนวคิดเรื่องเจ้าของข้อมูล (Data Ownership) ดังนี้:
+
+* Hospital B สามารถ **ดูข้อมูลของ Hospital A ได้**
+* แต่ **ไม่สามารถแก้ไขข้อมูลของ Hospital A ได้โดยตรง**
+* ข้อมูลที่แสดงใน UI จะถูกระบุว่าเป็น **External Data (Read-only)**
+
+หาก Hospital B ต้องการแก้ไขข้อมูล จะต้อง:
+
+1. ดึงข้อมูลจาก A
+2. บันทึกเป็นข้อมูลใหม่ของ B
+3. แก้ไขในระบบของ B เท่านั้น
+
+---
+
+### Why This Approach Still Represents HIS-HIS
+
+แม้จะใช้ database เดียว แต่ระบบยังคงแนวคิด HIS-HIS เพราะ:
+
+* มีการแยกข้อมูลของแต่ละโรงพยาบาลด้วย `hospital_id`
+* มีการจำลองการ request ผ่าน HIE
+* UI แสดงมุมมองของ “ผู้ขอข้อมูล (Hospital B)” อย่างชัดเจน
+* มีการระบุแหล่งที่มาของข้อมูล (Source Hospital)
+
+ดังนั้นระบบนี้จึงสามารถสื่อแนวคิดของการแลกเปลี่ยนข้อมูลระหว่างโรงพยาบาลได้ครบถ้วน แม้จะเป็น mock system
+
+---
+
+### Key UI Concept
+
+หน้าเว็บถูกออกแบบให้เป็นมุมมองของ **Hospital B (Ohm Hospital)** โดยมีองค์ประกอบสำคัญดังนี้:
+
+* 🔵 แสดงว่าเป็นระบบของ Hospital B
+* 🟢 แสดงแหล่งข้อมูลว่าเป็น Hospital A
+* 🔒 แสดงสถานะข้อมูลว่าเป็น Read-only
+* 📊 แสดงข้อมูล Patient, Encounter และ Medication แยกเป็น section
+
+ตัวอย่าง:
+
+```text
+Requester: Ohm Hospital (Hospital B)
+Data Source: Asoke Hospital (Hospital A)
+Status: External Data (Read-only)
+```
+
+---
+
+## System Architecture
+
+ภาพรวมของระบบสามารถอธิบายได้ดังนี้
+
+```text
++---------------------------+
+|   React UI (Hospital B)   |
+|  Request Patient Data     |
++------------+--------------+
+             |
+             v
++---------------------------+
+|  Node.js / Express (HIE)  |
+|   FHIR Facade / API       |
++------------+--------------+
+             |
+             v
++---------------------------+
+|      PostgreSQL DB        |
+|  - Mock HIS A (Asoke)     |
+|  - Mock HIS B (Ohm)       |
++---------------------------+
+```
+
+---
+
+## Backend Flow
+
+การทำงานของ backend สามารถสรุปได้ดังนี้:
+
+1. UI ส่ง request:
+
+   ```http
+   GET /api/facade/search?identifier=PID-O001
+   ```
+
+2. Route รับ request (`facade.routes.js`)
+
+3. Controller ทำหน้าที่ validate request (`facade.controller.js`)
+
+4. Service ทำ logic หลัก (`facade.service.js`)
+
+   * หา patient
+   * หา hospital
+   * ดึง encounter + medication
+   * map เป็น FHIR
+
+5. ส่ง response กลับไป UI
+
+---
+
+## Frontend Flow
+
+1. ผู้ใช้กรอก HN หรือ Patient ID
+2. React เรียก API ผ่าน `api.js`
+3. Backend ส่งข้อมูลกลับมา
+4. UI แสดง:
+
+   * Patient Info
+   * Encounter History
+   * Medication
+5. พร้อม label:
+
+   * Requester Hospital
+   * Source Hospital
+   * Read-only status
+
+---
+
+## Summary
+
+โปรเจคนี้เป็นการจำลองระบบ **Health Information Exchange (HIE)** โดย:
+
+* ใช้ **FHIR** เป็นมาตรฐานข้อมูล
+* ใช้ **Hospital B เป็นผู้ request**
+* ใช้ **Hospital A เป็นแหล่งข้อมูล**
+* ใช้ **Backend เป็นตัวกลาง (Facade)**
+
+แม้จะเป็น mock system แต่สามารถแสดงแนวคิดของระบบแลกเปลี่ยนข้อมูลสุขภาพได้ครบถ้วน และใกล้เคียงระบบจริง
+
+````
+
+
